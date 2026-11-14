@@ -197,7 +197,6 @@ footer {
 </head>
 
 <body>
-  
 
 <header>
   <h1>Smart Crop Advisor</h1>
@@ -242,15 +241,25 @@ footer {
       <strong id="temperature">--</strong>
       <span>°C</span>
     </div>
+
     <div class="metric">
       <span>Total Annual Precipitation</span>
       <strong id="rainfall">--</strong>
       <span>mm</span>
     </div>
+
+    <div class="metric">
+      <span>Average Relative Humidity</span>
+      <strong id="humidity">--</strong>
+      <span>%</span>
+    </div>
   </div>
 
   <p class="note" id="dataPeriod">Data period: 2025</p>
-  <p class="description">Source: NASA POWER Daily API. These indicators do not represent a complete soil assessment or a prediction of crop yield.</p>
+  <p class="description">
+    Source: NASA POWER Daily API. These indicators do not represent a complete
+    soil assessment or a prediction of crop yield.
+  </p>
 </section>
 
 <section class="panel" id="farm">
@@ -340,10 +349,10 @@ footer {
 <section class="panel">
   <h2>Data Sources and Limitations</h2>
   <p class="description">
-    NASA POWER provides climate information. This prototype currently uses
-    daily temperature and precipitation data. Other satellite products,
-    field measurements and local agricultural information have not yet
-    been integrated.
+    NASA POWER provides daily climate information. This prototype currently uses
+    daily temperature, precipitation and relative humidity data.
+    Other satellite products, field measurements and local agricultural information
+    have not yet been integrated.
   </p>
   <div class="note">
     Satellite and climate data have different spatial resolutions and time periods.
@@ -416,7 +425,7 @@ document.getElementById("analyzeClimate").addEventListener("click", async () => 
   const url = new URL("https://power.larc.nasa.gov/api/temporal/daily/point");
 
   url.search = new URLSearchParams({
-    parameters: "T2M,PRECTOTCORR",
+    parameters: "T2M,PRECTOTCORR,RH2M",
     community: "AG",
     longitude: coords.lon,
     latitude: coords.lat,
@@ -427,13 +436,18 @@ document.getElementById("analyzeClimate").addEventListener("click", async () => 
 
   try {
     const response = await fetch(url);
-    if (!response.ok) throw new Error("NASA POWER request failed.");
+
+    if (!response.ok) {
+      throw new Error("NASA POWER request failed.");
+    }
 
     const data = await response.json();
     const parameters = data.properties?.parameter;
 
-    if (!parameters?.T2M || !parameters?.PRECTOTCORR) {
-      throw new Error("Climate data is unavailable for this location.");
+    if (!parameters?.T2M ||
+        !parameters?.PRECTOTCORR ||
+        !parameters?.RH2M) {
+      throw new Error("Climate or humidity data is unavailable for this location.");
     }
 
     function cleanValues(series) {
@@ -444,8 +458,11 @@ document.getElementById("analyzeClimate").addEventListener("click", async () => 
 
     const temperatures = cleanValues(parameters.T2M);
     const precipitation = cleanValues(parameters.PRECTOTCORR);
+    const humidityValues = cleanValues(parameters.RH2M);
 
-    if (!temperatures.length || !precipitation.length) {
+    if (!temperatures.length ||
+        !precipitation.length ||
+        !humidityValues.length) {
       throw new Error("The returned climate data is incomplete.");
     }
 
@@ -456,9 +473,14 @@ document.getElementById("analyzeClimate").addEventListener("click", async () => 
     const annualRain =
       precipitation.reduce((sum, value) => sum + value, 0);
 
+    const averageHumidity =
+      humidityValues.reduce((sum, value) => sum + value, 0) /
+      humidityValues.length;
+
     climateData = {
       temperature: averageTemp,
       rainfall: annualRain,
+      humidity: averageHumidity,
       latitude: coords.lat,
       longitude: coords.lon
     };
@@ -469,8 +491,12 @@ document.getElementById("analyzeClimate").addEventListener("click", async () => 
     document.getElementById("rainfall").textContent =
       annualRain.toFixed(1);
 
+    document.getElementById("humidity").textContent =
+      averageHumidity.toFixed(1);
+
     status.textContent =
       "Climate data loaded successfully for the selected location.";
+
     status.className = "status success";
 
   } catch (error) {
