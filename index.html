@@ -576,6 +576,12 @@ let map = null;
 let marker = null;
 let tileLayer = null;
 
+function getRecentSatelliteDate() {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 3); // العودة 3 أيام للوراء لضمان توفر صور معالجة وخالية من البقع السوداء
+  return d.toISOString().slice(0, 10);
+}
+
 function initializeMap() {
   if (!window.L) {
     status("mapStatus", "Leaflet map library failed to load.", "error");
@@ -584,13 +590,14 @@ function initializeMap() {
 
   map = L.map("map").setView([state.latitude, state.longitude], 5);
 
-  // NASA GIBS MODIS Terra CorrectedReflectance TrueColor Layer
-  const gibsUrl = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/default/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg";
+  const satDate = getRecentSatelliteDate();
+  // استخدام تاريخ ثابت وموثوق لتجنب البقع السوداء لصور اليوم الحالي غير المكتملة
+  const gibsUrl = `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/${satDate}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
   
   tileLayer = L.tileLayer(gibsUrl, {
     maxZoom: 9,
     minZoom: 1,
-    attribution: "NASA Global Imagery Browse Services (GIBS) / MODIS Terra",
+    attribution: `NASA GIBS / MODIS Terra (${satDate})`,
     tileSize: 256,
     errorTileUrl: ""
   });
@@ -754,7 +761,6 @@ function processClimateData(data) {
     if (h !== null && Number.isFinite(h)) yr.humidities.push(h);
   });
 
-  // Calculate totals and averages for metrics
   let allTemps = [], allRains = [], allHumids = [], allDryDays = [];
   let tableHtml = "";
 
@@ -883,7 +889,7 @@ $("rotationBtn").addEventListener("click", () => {
   $("rotationResults").innerHTML = `
     <div class="result-card">
       <strong>Recommended Rotation Strategy</strong>
-      <p>Previous Crop: ${escapeHTML(prev)}</p>
+      <p>Previous Crop: ${prev}</p>
       <p>${rec}</p>
     </div>
   `;
