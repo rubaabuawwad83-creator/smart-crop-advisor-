@@ -4,313 +4,182 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Smart Crop Advisor</title>
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <style>
 :root {
-  --green: #205c43;
-  --green2: #347c58;
-  --light: #edf5ef;
-  --bg: #f5f7f4;
-  --text: #26372e;
-  --muted: #68776e;
-  --border: #dce5de;
+  --green:#205c43; --green2:#347c58; --light:#edf5ef;
+  --bg:#f5f7f4; --text:#26372e; --muted:#68776e;
+  --border:#dce5de;
 }
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(120deg,#173f30,#347c58);color:white;padding:30px 7%}
+header h1{margin:0 0 9px;font-size:30px}
+header p{margin:0;color:#e0eee5;line-height:1.5}
+nav{background:white;padding:13px 7%;border-bottom:1px solid var(--border);display:flex;gap:20px;flex-wrap:wrap}
+nav a{color:var(--green);text-decoration:none;font-weight:bold;font-size:14px}
+main{max-width:1150px;margin:28px auto;padding:0 18px}
+.panel{background:white;border:1px solid var(--border);border-radius:14px;padding:23px;margin-bottom:22px;box-shadow:0 3px 12px #1b3b2910}
+h2{color:var(--green);margin:0 0 12px;font-size:21px}
+h3{color:var(--green)}
+.description{color:var(--muted);line-height:1.6;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px}
+label{display:block;font-weight:bold;font-size:14px}
+input,select{width:100%;padding:12px;margin-top:7px;border:1px solid #cbd8ce;border-radius:8px;background:white;color:var(--text);font-size:14px}
+input[type=file]{padding:9px}
+button{border:0;border-radius:8px;padding:12px 18px;background:var(--green2);color:white;font-weight:bold;cursor:pointer;margin:12px 7px 0 0}
+button:hover{background:var(--green)}
+button:disabled{opacity:.6;cursor:wait}
+#map{height:350px;border-radius:10px;margin-top:15px;z-index:1}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:18px}
+.metric{background:var(--light);padding:18px;border-radius:10px}
+.metric span{display:block;color:var(--muted);font-size:13px}
+.metric strong{display:block;font-size:26px;color:var(--green);margin-top:9px}
+.status{margin-top:14px;font-size:14px;line-height:1.6}
+.success{color:#237447}.error{color:#b33d36}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px}
+.result-card{border:1px solid var(--border);border-radius:11px;padding:17px;background:#fff}
+.tag{display:inline-block;background:var(--light);color:var(--green);padding:5px 9px;border-radius:20px;font-size:12px;margin:5px 3px 0 0}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+th,td{text-align:left;padding:11px 9px;border-bottom:1px solid var(--border)}
+th{background:var(--light);color:var(--green)}
+.table-wrap{overflow-x:auto}
+.note{background:#f5f7f4;border-left:4px solid #7b9b82;padding:13px;color:var(--muted);font-size:13px;line-height:1.6;margin-top:16px}
+.hidden{display:none}
+.chart-wrap{width:100%;overflow:hidden;margin-top:18px}
+canvas{width:100%;height:280px;display:block}
+footer{text-align:center;padding:25px;color:var(--muted);font-size:13px}
+@media(max-width:600px){
+ header{padding:25px 20px}header h1{font-size:25px}
+ .panel{padding:17px}#map{height:280px}table{font-size:12px}
 }
-header {
-  background: linear-gradient(120deg, #173f30, #347c58);
-  color: white;
-  padding: 30px 7%;
-}
-header h1 { margin: 0 0 9px; font-size: 30px; }
-header p { margin: 0; color: #e0eee5; line-height: 1.5; }
-nav {
-  background: white;
-  padding: 13px 7%;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  gap: 22px;
-  flex-wrap: wrap;
-}
-nav a {
-  color: var(--green);
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 14px;
-}
-main {
-  max-width: 1120px;
-  margin: 28px auto;
-  padding: 0 18px;
-}
-.panel {
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 23px;
-  margin-bottom: 22px;
-  box-shadow: 0 3px 12px #1b3b2910;
-}
-h2 { color: var(--green); margin: 0 0 12px; font-size: 21px; }
-h3 { color: var(--green); }
-.description {
-  color: var(--muted);
-  line-height: 1.6;
-  font-size: 14px;
-}
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 15px;
-}
-label {
-  display: block;
-  font-weight: bold;
-  font-size: 14px;
-}
-input, select {
-  width: 100%;
-  padding: 12px;
-  margin-top: 7px;
-  border: 1px solid #cbd8ce;
-  border-radius: 8px;
-  background: white;
-  color: var(--text);
-  font-size: 14px;
-}
-button {
-  border: 0;
-  border-radius: 8px;
-  padding: 12px 18px;
-  background: var(--green2);
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  margin-top: 16px;
-}
-button:hover { background: var(--green); }
-button:disabled { opacity: .6; cursor: wait; }
-#map {
-  height: 350px;
-  border-radius: 10px;
-  margin-top: 15px;
-  z-index: 1;
-}
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 14px;
-  margin-top: 18px;
-}
-.metric {
-  background: var(--light);
-  padding: 18px;
-  border-radius: 10px;
-}
-.metric span {
-  display: block;
-  color: var(--muted);
-  font-size: 13px;
-}
-.metric strong {
-  display: block;
-  font-size: 27px;
-  color: var(--green);
-  margin-top: 9px;
-}
-.status {
-  margin-top: 14px;
-  font-size: 14px;
-  line-height: 1.6;
-}
-.success { color: #237447; }
-.error { color: #b33d36; }
-.result-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 14px;
-  margin-top: 16px;
-}
-.result-card {
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  padding: 17px;
-  background: #fff;
-}
-.score {
-  font-size: 25px;
-  color: var(--green);
-  font-weight: bold;
-}
-.tag {
-  display: inline-block;
-  background: var(--light);
-  color: var(--green);
-  padding: 5px 9px;
-  border-radius: 20px;
-  font-size: 12px;
-  margin: 5px 3px 0 0;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 14px;
-  font-size: 14px;
-}
-th, td {
-  text-align: left;
-  padding: 12px 9px;
-  border-bottom: 1px solid var(--border);
-}
-th { background: var(--light); color: var(--green); }
-.note {
-  background: #f5f7f4;
-  border-left: 4px solid #7b9b82;
-  padding: 13px;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.6;
-  margin-top: 16px;
-}
-.hidden { display: none; }
-footer {
-  text-align: center;
-  padding: 25px;
-  color: var(--muted);
-  font-size: 13px;
-}
-@media(max-width:600px) {
-  header { padding: 25px 20px; }
-  header h1 { font-size: 25px; }
-  .panel { padding: 17px; }
-  #map { height: 280px; }
-  table { font-size: 12px; }
+@media print{
+ nav,button,input[type=file]{display:none!important}
+ body{background:white}.panel{box-shadow:none;break-inside:avoid}
 }
 </style>
 </head>
 
 <body>
-
 <header>
   <h1>Smart Crop Advisor</h1>
-  <p>Explore climate conditions and compare crop options for smarter agricultural decisions.</p>
+  <p>Explore long-term climate conditions and agricultural data to support informed farming decisions.</p>
 </header>
 
 <nav>
   <a href="#location">Farm Location</a>
   <a href="#climate">Climate Analysis</a>
   <a href="#farm">Farm Information</a>
-  <a href="#recommendations">Crop Recommendations</a>
+  <a href="#crops">Crop Comparison</a>
   <a href="#rotation">Crop Rotation</a>
+  <a href="#data">Additional Data</a>
 </nav>
 
 <main>
 
 <section class="panel" id="location">
   <h2>1. Select Your Farm Location</h2>
-  <p class="description">Click anywhere on the map or enter geographic coordinates.</p>
+  <p class="description">Click anywhere on the map or enter geographic coordinates. The analysis uses the selected coordinates.</p>
 
   <div class="grid">
     <label>Latitude
-      <input id="lat" type="number" step="any" value="31.5">
+      <input id="lat" type="number" step="any" min="-90" max="90" value="31.5">
     </label>
     <label>Longitude
-      <input id="lon" type="number" step="any" value="35.2">
+      <input id="lon" type="number" step="any" min="-180" max="180" value="35.2">
     </label>
   </div>
 
   <div id="map"></div>
-  <button id="analyzeClimate">Load Climate Data</button>
-  <p class="status" id="climateStatus">Select your farm location to begin.</p>
+  <button id="analyzeClimate">Load 10-Year Climate Analysis</button>
+  <p class="status" id="climateStatus">Select a location and load climate data.</p>
 </section>
 
 <section class="panel" id="climate">
-  <h2>2. Climate Analysis</h2>
-  <p class="description">Climate indicators retrieved for the selected coordinates.</p>
+  <h2>2. Long-Term Climate Analysis</h2>
+  <p class="description">Daily NASA POWER data summarized over the selected ten-year period.</p>
 
   <div class="metrics">
     <div class="metric">
-      <span>Average Daily Temperature</span>
+      <span>Mean Daily Temperature</span>
       <strong id="temperature">--</strong>
       <span>°C</span>
     </div>
-
     <div class="metric">
-      <span>Total Annual Precipitation</span>
+      <span>Mean Annual Precipitation</span>
       <strong id="rainfall">--</strong>
-      <span>mm</span>
+      <span>mm/year</span>
     </div>
-
     <div class="metric">
-      <span>Average Relative Humidity</span>
+      <span>Mean Relative Humidity</span>
       <strong id="humidity">--</strong>
       <span>%</span>
     </div>
+    <div class="metric">
+      <span>Mean Annual Dry Days</span>
+      <strong id="dryDays">--</strong>
+      <span>days/year (precipitation below 1 mm)</span>
+    </div>
   </div>
 
-  <p class="note" id="dataPeriod">Data period: 2025</p>
-  <p class="description">
-    Source: NASA POWER Daily API. These indicators do not represent a complete
-    soil assessment or a prediction of crop yield.
-  </p>
+  <p class="note" id="dataPeriod">Data period: 2016–2025. No data loaded yet.</p>
+
+  <h3>Annual Climate Summary</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Year</th><th>Mean Temp (°C)</th>
+          <th>Precipitation (mm)</th><th>Mean RH (%)</th><th>Dry Days</th>
+        </tr>
+      </thead>
+      <tbody id="annualTable">
+        <tr><td colspan="5">Load climate data to display annual results.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Average Monthly Precipitation</h3>
+  <div class="chart-wrap">
+    <canvas id="rainChart" width="1000" height="300"></canvas>
+  </div>
+  <p class="description">Bars show the average monthly precipitation across available years.</p>
 </section>
 
 <section class="panel" id="farm">
   <h2>3. Farm Information</h2>
-  <p class="description">Enter the information you know about your farm. Choose "Unknown" when necessary.</p>
+  <p class="description">Enter known farm details. These details are used as context, not as a substitute for field measurements.</p>
 
   <div class="grid">
     <label>Farm Size (hectares)
-      <input type="number" id="farmSize" min="0" placeholder="e.g. 5">
+      <input type="number" id="farmSize" min="0" step="any" placeholder="e.g. 5">
     </label>
-
     <label>Soil Type
       <select id="soilType">
         <option value="">Select soil type</option>
-        <option value="Sandy">Sandy</option>
-        <option value="Clay">Clay</option>
-        <option value="Loamy">Loamy</option>
-        <option value="Silty">Silty</option>
-        <option value="Unknown">Unknown</option>
+        <option>Sandy</option><option>Clay</option><option>Loamy</option>
+        <option>Silty</option><option>Unknown</option>
       </select>
     </label>
-
     <label>Water Availability
       <select id="waterAvailability">
         <option value="">Select availability</option>
-        <option value="High">High</option>
-        <option value="Moderate">Moderate</option>
-        <option value="Limited">Limited</option>
+        <option>High</option><option>Moderate</option><option>Limited</option>
       </select>
     </label>
-
     <label>Previous Crop
       <select id="previousCrop">
         <option value="">Select previous crop</option>
-        <option value="None">No previous crop / New farm</option>
-        <option value="Wheat">Wheat</option>
-        <option value="Barley">Barley</option>
-        <option value="Maize">Maize</option>
-        <option value="Chickpea">Chickpea</option>
-        <option value="Lentil">Lentil</option>
-        <option value="Sorghum">Sorghum</option>
-        <option value="Soybean">Soybean</option>
-        <option value="Other">Other</option>
+        <option>None</option><option>Wheat</option><option>Barley</option>
+        <option>Maize</option><option>Chickpea</option><option>Lentil</option>
+        <option>Sorghum</option><option>Soybean</option><option>Other</option>
       </select>
     </label>
-
     <label>Farming Experience
       <select id="experience">
         <option value="">Select experience</option>
-        <option value="Beginner">Beginner</option>
-        <option value="Experienced">Experienced</option>
+        <option>Beginner</option><option>Experienced</option>
       </select>
     </label>
   </div>
@@ -319,99 +188,158 @@ footer {
   <p class="status" id="farmStatus"></p>
 </section>
 
-<section class="panel" id="recommendations">
-  <h2>4. Crop Recommendations</h2>
-  <p class="description">
-    Compare illustrative crop profiles with the available climate and farm information.
-    Load climate data and complete the farm form before generating results.
-  </p>
-
-  <button id="getRecommendations">Generate Crop Comparison</button>
+<section class="panel" id="crops">
+  <h2>4. Crop Climate Comparison</h2>
+  <p class="description">Review broad climate ranges and farm conditions for selected crops. This section does not rank crops or generate validated suitability scores.</p>
+  <button id="compareCrops">Generate Crop Comparison</button>
   <div id="cropResults" class="result-grid"></div>
-  <p class="note">
-    The scores are preliminary screening indicators based on simplified crop profiles.
-    They are not validated agronomic recommendations. Local growing calendars,
-    soil tests, crop varieties and farming advice are still required.
-  </p>
+  <p class="note">Crop requirements vary by variety, planting date, soil depth, drainage, elevation and management. Climate ranges shown here are broad screening references only, not locally validated thresholds or planting advice.</p>
 </section>
 
 <section class="panel" id="rotation">
   <h2>5. Crop Rotation Scenarios</h2>
-  <p class="description">
-    Explore possible crop sequences. Legumes may contribute to nitrogen cycling
-    when properly managed, but results depend on species, soil and management.
-  </p>
-
+  <p class="description">Explore example crop sequences and consider the previous crop when planning a rotation.</p>
   <button id="showRotation">Compare Rotation Scenarios</button>
   <div id="rotationResults"></div>
+  <p class="note">Rotation planning should consider botanical family, local pests and diseases, herbicide carryover, nutrient needs, water availability and market conditions. A legume does not guarantee a specific increase in soil nitrogen.</p>
+</section>
+
+<section class="panel" id="data">
+  <h2>6. Additional Agricultural Data</h2>
+  <h3>Soil Moisture Data (CSV)</h3>
+  <p class="description">Upload a CSV containing your own soil-moisture observations or downloaded satellite-product data.</p>
+  <p class="description">Suggested columns: date, soil_moisture. Optional columns: latitude, longitude, depth, product, units.</p>
+  <input type="file" id="moistureFile" accept=".csv,text/csv">
+  <p class="status" id="moistureStatus">No soil-moisture file uploaded.</p>
+  <div class="table-wrap" id="moistureTable"></div>
+
+  <h3>GAEZ Crop Suitability Data (CSV)</h3>
+  <p class="description">Upload a GAEZ data extract if available. The tool displays the supplied values without changing their meaning or claiming a live GAEZ connection.</p>
+  <p class="description">Suggested columns: crop, suitability. Keep the original classification and units from the source.</p>
+  <input type="file" id="gaezFile" accept=".csv,text/csv">
+  <p class="status" id="gaezStatus">No GAEZ file uploaded.</p>
+  <div class="table-wrap" id="gaezTable"></div>
+</section>
+
+<section class="panel">
+  <h2>7. Export and Report</h2>
+  <p class="description">Print or save the current report as PDF using your browser. Export the climate summary as a CSV file.</p>
+  <button id="printReport">Print / Save Report as PDF</button>
+  <button id="exportCSV">Export Climate Data CSV</button>
+  <p class="status" id="exportStatus"></p>
 </section>
 
 <section class="panel">
   <h2>Data Sources and Limitations</h2>
-  <p class="description">
-    NASA POWER provides daily climate information. This prototype currently uses
-    daily temperature, precipitation and relative humidity data.
-    Other satellite products, field measurements and local agricultural information
-    have not yet been integrated.
-  </p>
+  <ul class="description">
+    <li><strong>NASA POWER:</strong> daily temperature, precipitation and relative humidity data.</li>
+    <li><strong>OpenStreetMap:</strong> map tiles displayed through Leaflet.</li>
+    <li><strong>Soil moisture:</strong> only available when a CSV file is supplied by the user.</li>
+    <li><strong>GAEZ:</strong> only available when a source data file is supplied by the user.</li>
+  </ul>
   <div class="note">
-    Satellite and climate data have different spatial resolutions and time periods.
-    The tool should be used for exploration and decision support, not as a substitute
-    for soil testing or professional agricultural advice.
+    NASA POWER climate data are gridded estimates and do not represent direct measurements at the farm. RH2M is relative humidity at 2 metres, not soil moisture. PRECTOTCORR is precipitation, not irrigation or water availability. This tool is an exploratory decision-support application, not a certified agronomic service.
   </div>
 </section>
 
 </main>
 
-<footer>
-  Smart Crop Advisor | Global Agricultural Decision-Support Prototype
-</footer>
+<footer>Smart Crop Advisor | Climate and Agricultural Decision-Support Tool</footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
+"use strict";
+
+/* -------------------- MAP -------------------- */
+
 const latInput = document.getElementById("lat");
 const lonInput = document.getElementById("lon");
 
-const map = L.map("map").setView([20, 0], 2);
+const map = L.map("map").setView([31.5, 35.2], 5);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "&copy; OpenStreetMap contributors"
+  attribution: "&copy; OpenStreetMap contributors",
+  maxZoom: 19
 }).addTo(map);
 
 let marker = L.marker([31.5, 35.2]).addTo(map);
 
-map.on("click", event => {
-  const lat = event.latlng.lat.toFixed(4);
-  const lon = event.latlng.lng.toFixed(4);
-  latInput.value = lat;
-  lonInput.value = lon;
-  marker.setLatLng(event.latlng);
-});
+let climateData = null;
+let farmData = null;
+let moistureRows = [];
+let gaezRows = [];
 
 function validCoordinates() {
   const lat = Number(latInput.value);
   const lon = Number(lonInput.value);
 
-  if (!latInput.value || !lonInput.value ||
-      !Number.isFinite(lat) || !Number.isFinite(lon) ||
-      lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    return null;
-  }
-  return { lat, lon };
+  if (
+    latInput.value.trim() === "" ||
+    lonInput.value.trim() === "" ||
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon) ||
+    lat < -90 || lat > 90 ||
+    lon < -180 || lon > 180
+  ) return null;
+
+  return {lat, lon};
 }
 
-let climateData = null;
-let farmData = null;
-
-document.getElementById("analyzeClimate").addEventListener("click", async () => {
+function updateMapFromInputs() {
   const coords = validCoordinates();
-  const status = document.getElementById("climateStatus");
+  if (!coords) return;
+  marker.setLatLng([coords.lat, coords.lon]);
+}
+
+latInput.addEventListener("change", updateMapFromInputs);
+lonInput.addEventListener("change", updateMapFromInputs);
+
+map.on("click", event => {
+  latInput.value = event.latlng.lat.toFixed(4);
+  lonInput.value = event.latlng.lng.toFixed(4);
+  marker.setLatLng(event.latlng);
+});
+
+/* -------------------- HELPERS -------------------- */
+
+function average(values) {
+  const valid = values.filter(Number.isFinite);
+  if (!valid.length) return null;
+  return valid.reduce((a,b) => a+b, 0) / valid.length;
+}
+
+function sum(values) {
+  return values.filter(Number.isFinite).reduce((a,b) => a+b, 0);
+}
+
+function cleanNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > -900 ? number : null;
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, character => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#039;"
+  })[character]);
+}
+
+function setStatus(id, message, type="") {
+  const element = document.getElementById(id);
+  element.textContent = message;
+  element.className = "status " + type;
+}
+
+/* -------------------- NASA POWER CLIMATE DATA -------------------- */
+
+document.getElementById("analyzeClimate").addEventListener("click", loadClimate);
+
+async function loadClimate() {
+  const coords = validCoordinates();
   const button = document.getElementById("analyzeClimate");
 
   if (!coords) {
-    status.textContent = "Please enter valid latitude and longitude.";
-    status.className = "status error";
+    setStatus("climateStatus", "Please enter valid latitude and longitude.", "error");
     return;
   }
 
@@ -419,292 +347,198 @@ document.getElementById("analyzeClimate").addEventListener("click", async () => 
   map.setView([coords.lat, coords.lon], 6);
 
   button.disabled = true;
-  status.textContent = "Loading climate data from NASA POWER...";
-  status.className = "status";
+  setStatus("climateStatus", "Requesting daily climate data from NASA POWER. This may take a little time.");
+
+  climateData = null;
+  document.getElementById("temperature").textContent = "--";
+  document.getElementById("rainfall").textContent = "--";
+  document.getElementById("humidity").textContent = "--";
+  document.getElementById("dryDays").textContent = "--";
 
   const url = new URL("https://power.larc.nasa.gov/api/temporal/daily/point");
 
   url.search = new URLSearchParams({
     parameters: "T2M,PRECTOTCORR,RH2M",
     community: "AG",
-    longitude: coords.lon,
-    latitude: coords.lat,
-    start: "20250101",
+    longitude: String(coords.lon),
+    latitude: String(coords.lat),
+    start: "20160101",
     end: "20251231",
     format: "JSON"
-  });
+  }).toString();
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
-      throw new Error("NASA POWER request failed.");
+      throw new Error("NASA POWER returned HTTP " + response.status);
     }
 
     const data = await response.json();
     const parameters = data.properties?.parameter;
 
-    if (!parameters?.T2M ||
-        !parameters?.PRECTOTCORR ||
-        !parameters?.RH2M) {
-      throw new Error("Climate or humidity data is unavailable for this location.");
+    if (!parameters?.T2M || !parameters?.PRECTOTCORR || !parameters?.RH2M) {
+      throw new Error("Required climate parameters were not returned.");
     }
 
-    function cleanValues(series) {
-      return Object.values(series)
-        .map(Number)
-        .filter(value => Number.isFinite(value) && value > -900);
+    const temperature = parameters.T2M;
+    const precipitation = parameters.PRECTOTCORR;
+    const humidity = parameters.RH2M;
+
+    const years = [];
+
+    for (let year = 2016; year <= 2025; year++) {
+      const tempValues = [];
+      const humidityValues = [];
+      const rainValues = [];
+      let dryDays = 0;
+      let validRainDays = 0;
+
+      for (const date of Object.keys(temperature)) {
+        if (!date.startsWith(String(year))) continue;
+
+        const t = cleanNumber(temperature[date]);
+        const h = cleanNumber(humidity[date]);
+        const p = cleanNumber(precipitation[date]);
+
+        if (t !== null) tempValues.push(t);
+        if (h !== null) humidityValues.push(h);
+
+        if (p !== null) {
+          rainValues.push(p);
+          validRainDays++;
+          if (p < 1) dryDays++;
+        }
+      }
+
+      const annualRain = validRainDays >= 300 ? sum(rainValues) : null;
+
+      years.push({
+        year,
+        temperature: average(tempValues),
+        rainfall: annualRain,
+        humidity: average(humidityValues),
+        dryDays: validRainDays >= 300 ? dryDays : null,
+        validRainDays
+      });
     }
 
-    const temperatures = cleanValues(parameters.T2M);
-    const precipitation = cleanValues(parameters.PRECTOTCORR);
-    const humidityValues = cleanValues(parameters.RH2M);
+    const allTemp = Object.values(temperature).map(cleanNumber).filter(v => v !== null);
+    const allHumidity = Object.values(humidity).map(cleanNumber).filter(v => v !== null);
 
-    if (!temperatures.length ||
-        !precipitation.length ||
-        !humidityValues.length) {
-      throw new Error("The returned climate data is incomplete.");
+    const validAnnualRain = years.map(y => y.rainfall).filter(v => v !== null);
+    const validAnnualDry = years.map(y => y.dryDays).filter(v => v !== null);
+
+    if (!allTemp.length || !allHumidity.length || !validAnnualRain.length) {
+      throw new Error("Insufficient valid data returned for this location.");
     }
 
-    const averageTemp =
-      temperatures.reduce((sum, value) => sum + value, 0) /
-      temperatures.length;
+    const monthlyTotals = Array.from({length:12}, () => []);
 
-    const annualRain =
-      precipitation.reduce((sum, value) => sum + value, 0);
+    for (const date of Object.keys(precipitation)) {
+      const value = cleanNumber(precipitation[date]);
+      if (value === null) continue;
 
-    const averageHumidity =
-      humidityValues.reduce((sum, value) => sum + value, 0) /
-      humidityValues.length;
+      const month = Number(date.slice(4,6)) - 1;
+      if (month >= 0 && month < 12) {
+        monthlyTotals[month].push(value);
+      }
+    }
+
+    const monthlyAverage = monthlyTotals.map(values => {
+      if (!values.length) return null;
+      const daysPerMonth = values.length / Math.max(1, years.length);
+      return sum(values) / Math.max(1, years.length);
+    });
 
     climateData = {
-      temperature: averageTemp,
-      rainfall: annualRain,
-      humidity: averageHumidity,
       latitude: coords.lat,
-      longitude: coords.lon
+      longitude: coords.lon,
+      temperature: average(allTemp),
+      rainfall: average(validAnnualRain),
+      humidity: average(allHumidity),
+      dryDays: average(validAnnualDry),
+      years,
+      monthlyAverage,
+      period: "2016–2025"
     };
 
     document.getElementById("temperature").textContent =
-      averageTemp.toFixed(1);
+      climateData.temperature.toFixed(1);
 
     document.getElementById("rainfall").textContent =
-      annualRain.toFixed(1);
+      climateData.rainfall.toFixed(1);
 
     document.getElementById("humidity").textContent =
-      averageHumidity.toFixed(1);
+      climateData.humidity.toFixed(1);
 
-    status.textContent =
-      "Climate data loaded successfully for the selected location.";
+    document.getElementById("dryDays").textContent =
+      climateData.dryDays === null ? "--" : climateData.dryDays.toFixed(0);
 
-    status.className = "status success";
+    document.getElementById("dataPeriod").textContent =
+      "Data period: 2016–2025 | Coordinates: " +
+      coords.lat.toFixed(4) + ", " + coords.lon.toFixed(4) +
+      " | Valid annual rainfall records: " + validAnnualRain.length + "/10";
+
+    renderAnnualTable();
+    drawRainChart();
+
+    setStatus("climateStatus", "Climate data successfully retrieved and summarized.", "success");
 
   } catch (error) {
     climateData = null;
-    status.textContent = "Could not load climate data: " + error.message;
-    status.className = "status error";
+    setStatus("climateStatus", "Unable to load climate data: " + error.message +
+      " Check your internet connection and try again.", "error");
   } finally {
     button.disabled = false;
   }
-});
-
-document.getElementById("saveFarm").addEventListener("click", () => {
-  const size = Number(document.getElementById("farmSize").value);
-  const soil = document.getElementById("soilType").value;
-  const water = document.getElementById("waterAvailability").value;
-  const previous = document.getElementById("previousCrop").value;
-  const experience = document.getElementById("experience").value;
-  const status = document.getElementById("farmStatus");
-
-  if (!document.getElementById("farmSize").value ||
-      !Number.isFinite(size) || size <= 0 ||
-      !soil || !water || !previous || !experience) {
-    status.textContent = "Please complete all fields with valid information.";
-    status.className = "status error";
-    return;
-  }
-
-  farmData = { size, soil, water, previous, experience };
-
-  status.textContent = "Farm information saved successfully.";
-  status.className = "status success";
-});
-
-const crops = [
-  {
-    name: "Wheat",
-    minTemp: 5, maxTemp: 25,
-    minRain: 300, maxRain: 800,
-    water: "Moderate",
-    soils: ["Loamy", "Clay", "Silty"],
-    family: "Cereal",
-    nitrogenFixer: false
-  },
-  {
-    name: "Barley",
-    minTemp: 5, maxTemp: 25,
-    minRain: 200, maxRain: 600,
-    water: "Limited",
-    soils: ["Sandy", "Loamy", "Clay"],
-    family: "Cereal",
-    nitrogenFixer: false
-  },
-  {
-    name: "Chickpea",
-    minTemp: 10, maxTemp: 30,
-    minRain: 250, maxRain: 600,
-    water: "Limited",
-    soils: ["Sandy", "Loamy", "Silty"],
-    family: "Legume",
-    nitrogenFixer: true
-  },
-  {
-    name: "Lentil",
-    minTemp: 5, maxTemp: 25,
-    minRain: 250, maxRain: 600,
-    water: "Limited",
-    soils: ["Loamy", "Silty", "Clay"],
-    family: "Legume",
-    nitrogenFixer: true
-  },
-  {
-    name: "Maize",
-    minTemp: 15, maxTemp: 32,
-    minRain: 500, maxRain: 1000,
-    water: "High",
-    soils: ["Loamy", "Silty"],
-    family: "Cereal",
-    nitrogenFixer: false
-  },
-  {
-    name: "Sorghum",
-    minTemp: 18, maxTemp: 35,
-    minRain: 300, maxRain: 700,
-    water: "Limited",
-    soils: ["Sandy", "Loamy", "Clay"],
-    family: "Cereal",
-    nitrogenFixer: false
-  },
-  {
-    name: "Soybean",
-    minTemp: 18, maxTemp: 30,
-    minRain: 450, maxRain: 900,
-    water: "High",
-    soils: ["Loamy", "Silty"],
-    family: "Legume",
-    nitrogenFixer: true
-  }
-];
-
-function calculateCropScore(crop) {
-  let score = 0;
-  const reasons = [];
-
-  if (climateData.temperature >= crop.minTemp &&
-      climateData.temperature <= crop.maxTemp) {
-    score += 35;
-    reasons.push("Temperature falls within the illustrative profile range");
-  } else {
-    reasons.push("Temperature is outside the illustrative profile range");
-  }
-
-  if (climateData.rainfall >= crop.minRain &&
-      climateData.rainfall <= crop.maxRain) {
-    score += 35;
-    reasons.push("Annual rainfall falls within the illustrative profile range");
-  } else {
-    reasons.push("Annual rainfall differs from the illustrative profile range");
-  }
-
-  if (farmData.soil === "Unknown") {
-    score += 10;
-    reasons.push("Soil type not provided");
-  } else if (crop.soils.includes(farmData.soil)) {
-    score += 20;
-    reasons.push("Selected soil type matches the illustrative profile");
-  }
-
-  if (farmData.water === crop.water) {
-    score += 10;
-    reasons.push("Water availability matches the profile");
-  } else if (farmData.water === "High" || crop.water === "Limited") {
-    score += 5;
-    reasons.push("Water conditions need further assessment");
-  } else {
-    reasons.push("Water availability may be a constraint");
-  }
-
-  if (farmData.previous === crop.name) {
-    score = Math.max(0, score - 15);
-    reasons.push("Same crop as the previous crop: consider rotation planning");
-  }
-
-  return { crop, score: Math.min(score, 100), reasons };
 }
 
-document.getElementById("getRecommendations").addEventListener("click", () => {
-  const output = document.getElementById("cropResults");
+/* -------------------- ANNUAL TABLE -------------------- */
 
-  if (!climateData || !farmData) {
-    output.innerHTML =
-      "<p class='status error'>Load climate data and save farm information first.</p>";
+function renderAnnualTable() {
+  const body = document.getElementById("annualTable");
+
+  if (!climateData) {
+    body.innerHTML = "<tr><td colspan='5'>No climate data available.</td></tr>";
     return;
   }
 
-  const results = crops
-    .map(calculateCropScore)
-    .sort((a, b) => b.score - a.score);
-
-  output.innerHTML = results.map(result => `
-    <div class="result-card">
-      <h3>${result.crop.name}</h3>
-      <div class="score">${result.score}/100</div>
-      <span class="tag">${result.crop.family}</span>
-      <span class="tag">Water: ${result.crop.water}</span>
-      <ul>
-        ${result.reasons.map(reason => `<li>${reason}</li>`).join("")}
-      </ul>
-    </div>
+  body.innerHTML = climateData.years.map(item => `
+    <tr>
+      <td>${item.year}</td>
+      <td>${item.temperature === null ? "--" : item.temperature.toFixed(1)}</td>
+      <td>${item.rainfall === null ? "--" : item.rainfall.toFixed(1)}</td>
+      <td>${item.humidity === null ? "--" : item.humidity.toFixed(1)}</td>
+      <td>${item.dryDays === null ? "--" : item.dryDays}</td>
+    </tr>
   `).join("");
-});
+}
 
-document.getElementById("showRotation").addEventListener("click", () => {
-  const output = document.getElementById("rotationResults");
+/* -------------------- MONTHLY RAINFALL CHART -------------------- */
 
-  if (!farmData) {
-    output.innerHTML =
-      "<p class='status error'>Please save your farm information first.</p>";
+function drawRainChart() {
+  const canvas = document.getElementById("rainChart");
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+
+  ctx.clearRect(0, 0, width, height);
+
+  if (!climateData) {
+    ctx.font = "18px Arial";
+    ctx.fillStyle = "#68776e";
+    ctx.fillText("Load climate data to display the chart.", 30, 50);
     return;
   }
 
-  const scenarios = [
-    {
-      title: "Scenario A: Cereal then Legume",
-      sequence: ["Wheat", "Chickpea", "Wheat"],
-      detail: "Alternating a cereal with a legume can diversify the rotation. Legumes may contribute to nitrogen cycling."
-    },
-    {
-      title: "Scenario B: Cereal Diversity",
-      sequence: ["Barley", "Sorghum", "Wheat"],
-      detail: "Using different cereal crops changes crop timing and management needs. It does not replace a full soil fertility plan."
-    },
-    {
-      title: "Scenario C: Legume Diversity",
-      sequence: ["Lentil", "Wheat", "Chickpea"],
-      detail: "Including different legumes may diversify the system. Local disease risks and crop compatibility must be checked."
-    }
-  ];
-
-  output.innerHTML = scenarios.map((scenario, index) => `
-    <div class="result-card" style="margin-top:14px">
-      <h3>${scenario.title}</h3>
-      <p><strong>Sequence:</strong> ${scenario.sequence.join(" → ")}</p>
-      <p>${scenario.detail}</p>
-      <span class="tag">Illustrative scenario ${index + 1}</span>
-    </div>
-  `).join("");
-});
-</script>
-
-</body>
-</html>
+  const values = climateData.monthlyAverage;
+  const valid = values.filter(v => v !== null);
+  const maxValue = Math.max(10, ...valid);
+  const chartLeft = 55;
+  const chartRight = width - 25;
+  const chartTop = 25;
+  const chartBottom = height - 45;
+  const chartHeight = chartBottom - chartTop;
+  const slot = (chartRight - chartLeft) / 12;
+  const barWidth = slot * 0.58;
